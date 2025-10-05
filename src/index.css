@@ -289,3 +289,59 @@ h2 {
    font-weight: 700;
    text-align: end;
 }
+
+/* API Clima (simple)  */
+.api-card {
+   width: min(92vw, 720px);
+}
+
+.api-actions {
+   display: flex;
+   justify-content: center;
+   margin: 10px 0 14px;
+}
+
+.api-grid {
+   display: grid;
+   grid-template-columns: 140px 1fr;
+   gap: 16px;
+   align-items: stretch;
+}
+
+.api-icon-card {
+   background: #ffffff;
+   border: 1px solid #dddddd;
+   border-radius: 12px;
+   padding: 12px;
+   display: grid;
+   place-items: center;
+   color: #2563eb; /* controla el color del ícono */
+   text-align: center;
+}
+
+.api-icon {
+   width: 72px;
+   height: 72px;
+   display: block;
+}
+
+.api-cond {
+   margin-top: 6px;
+   font-weight: 700;
+   font-size: 14px;
+}
+
+.api-stats {
+   padding: 14px;
+}
+
+.api-row {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: 8px 0;
+   border-bottom: 1px dashed #e5e7eb;
+}
+.api-row:last-child {
+   border-bottom: 0;
+}
