@@ -1,89 +1,76 @@
-// src/components/ApiClima.tsx
 import { useEffect, useState } from "react";
-// Tipo de respuesta de los datos que queremos de la API
-type WeatherResponse = {
-   location: { name: string; country: string; localtime: string };
-   current: {
-      temp_c: number;
-      feelslike_c: number;
-      humidity: number;
-      wind_kph: number;
-      wind_degree: number;
-      wind_dir: string;
-      condition: { text: string; icon: string };
-   };
-};
 
 export default function ApiClima() {
-   // Estados: datos, carga, error, modo automático de ubicación actual
-   const [data, setData] = useState<WeatherResponse | null>(null);
+   // Estados: datos, carga, error, modo automático (geo/ip)
+   const [data, setData] = useState(null);
    const [loading, setLoading] = useState(false);
-   const [err, setErr] = useState<string | null>(null);
-   const [, setUsingAuto] = useState<"geo" | "ip" | null>(null);
-   // Consultas
-   async function fetchByQuery(q: string) {
+   const [err, setErr] = useState(null);
+   const [, setUsingAuto] = useState(null);
+   // Consulta el clima por query puede venir el IP o la latitud y longitud
+   async function fetchByQuery(q) {
       setLoading(true);
       setErr(null);
       setData(null);
       try {
-         //API Key y URL
+         // Key público de WeatherAPI.com (free plan)
          const key = "44df8ac4c13445e4a07225527250510";
-         //Usamos encodeURIComponent para evitar errores con caracteres especiales. Mando la latitud y longitud o "auto:ip" debido a que la API lo permite
-         //El parámetro lang=es es para que la respuesta esté en español
+         // Construye URL donde se usa encodeURIComponent para evitar problemas con caracteres especiales. Elegimos el idioma español (lang=es) y q puede ser "auto:ip" o "lat,lon"
          const url = `https://api.weatherapi.com/v1/current.json?key=${key}&q=${encodeURIComponent(
             q
          )}&lang=es`;
-         // Consulta realiza a la API
+         // Realiza la consulta
          const res = await fetch(url);
-         //Parseo a un formato JSON
-         const json: WeatherResponse = await res.json();
-         //Guardar datos de la API
+         //Parseamos el JSON los datos traido de la API
+         const json = await res.json();
+         //Guardamos los datos en el estado
          setData(json);
-      } catch (e: any) {
-         // Mensaje de Error
-         setErr(e?.message ?? "Error al consultar el clima");
+      } catch (e) {
+         // En caso de error, guarda el mensaje
+         setErr(e?.message || "Error al consultar el clima");
       } finally {
-         // Siempre desactivar carga
+         // Finaliza la carga
          setLoading(false);
       }
    }
 
-   // Intenta GEO primero, si falla -> auto:ip
+   // Intenta geolocalización; si falla → auto:ip
    useEffect(() => {
-      // Funciones de éxito y fallo de geolocalización
-      const geoOk = (pos: GeolocationPosition) => {
-         // Coordenadas
+      //Geolocalización
+      const geoOk = (pos) => {
+         // Si se obtiene la posición, extrae latitud y longitud y consulta el clima
          const { latitude, longitude } = pos.coords;
+         // Indica que se está usando geolocalización
          setUsingAuto("geo");
-         //Mandar consulta con latitud y longitud para que use la API
+         // Consulta el clima con latitud y longitud
          fetchByQuery(`${latitude},${longitude}`);
       };
-      // Fallback a IP
+      // Si falla la geolocalización, usa la IP
       const geoFail = () => {
+         // Indica que se está usando IP
          setUsingAuto("ip");
-         //Mandar el IP para que use la API
+         // Consulta el clima con la IP
          fetchByQuery("auto:ip");
       };
-      // Intentar geolocalización
+      // Verifica si el navegador soporta geolocalización
       if ("geolocation" in navigator) {
-         // Solicitar geolocalización al usuario esperando 10 segundos
          navigator.geolocation.getCurrentPosition(geoOk, geoFail, {
             enableHighAccuracy: true,
             timeout: 10000,
             maximumAge: 0,
          });
       } else {
-         // Si no hay geolocalización, usar IP
          setUsingAuto("ip");
          fetchByQuery("auto:ip");
       }
    }, []);
-   // URL del icono asegurando que sea httpp
-   const iconUrl = data
-      ? data.current.condition.icon.startsWith("http")
-         ? data.current.condition.icon
-         : `https:${data.current.condition.icon}`
-      : "";
+
+   // URL del icono del clima para asegurar que es completa y sea http
+   const iconUrl =
+      data && data.current
+         ? data.current.condition.icon.startsWith("http")
+            ? data.current.condition.icon
+            : `https:${data.current.condition.icon}`
+         : "";
 
    return (
       <div className="page-center">
@@ -99,11 +86,11 @@ export default function ApiClima() {
                <button
                   className="btn"
                   onClick={() => {
-                     //Se actualiza el clima
+                     // Reintento automático: geo → ip
                      setData(null);
                      setErr(null);
                      setUsingAuto(null);
-                     // Intentar geolocalización nuevamente
+
                      if ("geolocation" in navigator) {
                         navigator.geolocation.getCurrentPosition(
                            (pos) => {
@@ -121,6 +108,9 @@ export default function ApiClima() {
                               maximumAge: 0,
                            }
                         );
+                     } else {
+                        setUsingAuto("ip");
+                        fetchByQuery("auto:ip");
                      }
                   }}
                   disabled={loading}
@@ -129,22 +119,24 @@ export default function ApiClima() {
                </button>
             </div>
 
-            {/* Mensaje de Errores */}
+            {/* Errores */}
             {err && (
                <p className="error" style={{ textAlign: "center" }}>
                   {err}
                </p>
             )}
-            {/* Mensaje de espera */}
+
+            {/* Espera */}
             {!data && !loading && !err && (
                <p className="hint" style={{ textAlign: "center" }}>
                   Esperando ubicación…
                </p>
             )}
-            {/* Datos del clima */}
-            {data && (
+
+            {/* Datos */}
+            {data && data.current && (
                <div className="api-grid">
-                  {/* Imagen y condición */}
+                  {/* Imagen + condición */}
                   <div className="api-icon-card">
                      <img
                         src={iconUrl}
